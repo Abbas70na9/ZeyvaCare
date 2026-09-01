@@ -364,49 +364,6 @@ export async function syncWithSupabase(): Promise<{ success: boolean; message: s
   }
 
   try {
-    // 0. Sync products
-    const { data: prodData, error: prodError } = await supabase
-      .from("products")
-      .select("*");
-
-    if (!prodError && Array.isArray(prodData) && prodData.length > 0) {
-      const mappedProducts: Product[] = prodData.map((p) => ({
-        id: p.id,
-        name: p.name,
-        subtitle: p.subtitle || "",
-        price: p.price,
-        compareAt: p.compare_at,
-        badge: p.badge || "",
-        description: p.description || "",
-        images: p.images || [],
-        features: p.features || [],
-        isActive: p.is_active ?? true,
-      }));
-      setJson(KEYS.PRODUCTS, mappedProducts);
-    }
-
-    // 0b. Sync bundles
-    const { data: bundleData, error: bundleError } = await supabase
-      .from("bundles")
-      .select("*")
-      .order("id", { ascending: true });
-
-    if (!bundleError && Array.isArray(bundleData) && bundleData.length > 0) {
-      const mappedBundles: Bundle[] = bundleData.map((b) => ({
-        id: b.id,
-        quantity: b.quantity,
-        freeItems: b.free_items || 0,
-        totalPieces: b.total_pieces || b.quantity,
-        label: b.label,
-        sublabel: b.sublabel || undefined,
-        price: b.price,
-        savings: b.savings || 0,
-        badge: b.badge || undefined,
-        popular: b.popular || false,
-      }));
-      setJson(KEYS.BUNDLES, mappedBundles);
-    }
-
     // 1. Sync reviews
     const { data: revData, error: revError } = await supabase
       .from("reviews")
