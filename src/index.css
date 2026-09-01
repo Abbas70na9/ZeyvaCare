@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-blush-50: #fdf6f4;
+  --color-blush-100: #fbeae4;
+  --color-blush-200: #f5d1c6;
+  --color-blush-300: #eeb3a2;
+  --color-blush-400: #e5927b;
+  --color-blush-500: #d67560;
+  --color-cream: #fbf8f4;
+  --color-cream-dark: #f4ede2;
+  --color-lavender-100: #efeaf5;
+  --color-lavender-200: #ded1ec;
+  --color-gold: #c9a875;
+  --color-ink: #2a2320;
+  --color-muted: #7a6f68;
+}
+
+html, body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-cream);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif { font-family: var(--font-serif); letter-spacing: -0.01em; }
+
+/* Marquee scrolling for announcement bar */
+@keyframes zeyva-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.zeyva-marquee { animation: zeyva-marquee 30s linear infinite; }
+
+/* Fade-in animation for the social proof widget */
+@keyframes zeyva-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.zeyva-fade-up { animation: zeyva-fade-up 0.5s ease-out both; }
+
+/* Modal slide-in */
+@keyframes zeyva-modal-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.zeyva-modal-in { animation: zeyva-modal-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes zeyva-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.zeyva-overlay-in { animation: zeyva-overlay-in 0.25s ease-out both; }
+
+/* Custom minimal scrollbar for thumbnails */
+.zeyva-thumbs::-webkit-scrollbar { height: 4px; }
+.zeyva-thumbs::-webkit-scrollbar-thumb { background: #e5d9cc; border-radius: 999px; }
+
+/* Hide number input spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none; margin: 0;
+}
+input[type=number] { -moz-appearance: textfield; }
