@@ -216,7 +216,47 @@ export function getStoredReviews(): ReviewItem[] {
 }
 
 export function saveStoredReviews(reviews: ReviewItem[]): void {
+  const previous = getStoredReviews();
   setJson(KEYS.REVIEWS, reviews);
+
+  // Push every change (approve/reject/edit/add) to Supabase so it survives
+  // a page refresh or cloud re-sync instead of only living in localStorage.
+  const supabase = getSupabase();
+  if (supabase) {
+    (async () => {
+      try {
+        for (const r of reviews) {
+          await supabase.from("reviews").upsert({
+            id: r.id,
+            name: r.name,
+            location: r.location || "Pakistan",
+            rating: r.rating,
+            title: r.title || null,
+            body: r.body,
+            verified: r.verified ?? true,
+            date: r.date || "Recent",
+            status: r.status || "approved",
+            google_review: r.googleReview ?? true,
+            user_type: r.userType || "Verified Customer",
+            avatar_color: r.avatarColor,
+            likes: r.likes || 0,
+            media: r.media || [],
+          });
+        }
+
+        // Remove from Supabase anything that was deleted locally
+        const currentIds = new Set(reviews.map((r) => r.id));
+        const removedIds = previous
+          .filter((r) => !currentIds.has(r.id))
+          .map((r) => r.id);
+        for (const id of removedIds) {
+          await supabase.from("reviews").delete().eq("id", id);
+        }
+      } catch (err) {
+        console.warn("Supabase reviews sync error:", err);
+      }
+    })();
+  }
 }
 
 export function getMySubmittedReviewIds(): string[] {
