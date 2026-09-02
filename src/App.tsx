@@ -9,7 +9,6 @@ import {
   getStoredBundlesVisible,
   getStoredFaqs,
   getStoredReviews,
-  getMySubmittedReviewIds,
   toggleLikeReview,
   subscribeDataChanges,
   syncWithSupabase,
@@ -856,24 +855,20 @@ function ReviewsSection({
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<ReviewMedia | null>(null);
   const [filter, setFilter] = useState<"all" | "media" | "5star">("all");
-  const [mySubmittedIds, setMySubmittedIds] = useState<string[]>(() => getMySubmittedReviewIds());
 
-  const refreshMyIds = () => {
-    setMySubmittedIds(getMySubmittedReviewIds());
-  };
-
-  // Filter reviews: show approved reviews to all, plus pending reviews ONLY if submitted by this user on this device
+  // New reviews go live immediately (see submitUserReview), so the public
+  // list simply shows every approved review — no "pending, visible only to
+  // you" state to track anymore.
   const filteredReviews = useMemo(() => {
     return reviews.filter((r) => {
       const isApproved = (r.status || "approved") === "approved";
-      const isMyPending = r.status === "pending" && mySubmittedIds.includes(r.id);
-      if (!isApproved && !isMyPending) return false;
+      if (!isApproved) return false;
 
       if (filter === "media") return r.media && r.media.length > 0;
       if (filter === "5star") return r.rating === 5;
       return true;
     });
-  }, [reviews, filter, mySubmittedIds]);
+  }, [reviews, filter]);
 
   // Landing page only teases a handful of reviews; the full list lives on the "all reviews" page
   const visibleReviews = useMemo(() => {
@@ -911,7 +906,7 @@ function ReviewsSection({
       <WriteReviewModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSubmitted={refreshMyIds}
+        onSubmitted={() => {}}
       />
 
       <div className="max-w-6xl mx-auto px-5 sm:px-10">
@@ -1040,30 +1035,11 @@ function ReviewsSection({
         {/* Reviews Grid */}
         <div className="grid md:grid-cols-2 gap-6">
           {visibleReviews.map((r) => {
-            const isMyPending = r.status === "pending" && mySubmittedIds.includes(r.id);
-
             return (
               <article
                 key={r.id}
-                className={`relative bg-white p-6 sm:p-7 rounded-3xl border transition-all duration-300 hover:shadow-md flex flex-col justify-between ${
-                  isMyPending
-                    ? "border-amber-300 bg-amber-50/20 ring-2 ring-amber-300/40"
-                    : "border-cream-dark"
-                }`}
+                className="relative bg-white p-6 sm:p-7 rounded-3xl border border-cream-dark transition-all duration-300 hover:shadow-md flex flex-col justify-between"
               >
-                {/* Pending Notice for the submitter */}
-                {isMyPending && (
-                  <div className="mb-4 -mt-2 -mx-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white px-3.5 py-2 rounded-2xl text-[11px] font-medium flex items-center justify-between gap-2 shadow-xs">
-                    <span className="flex items-center gap-1.5">
-                      <span>⏳</span>
-                      <span>Your review is submitted & awaiting admin approval</span>
-                    </span>
-                    <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
-                      Visible only to you
-                    </span>
-                  </div>
-                )}
-
                 <div>
                   {/* Google Review Card Header */}
                   <div className="flex items-start justify-between gap-3 mb-3">
