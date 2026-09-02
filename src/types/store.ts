@@ -57,3 +57,9 @@ export interface ReviewItem {
   userType?: string; // e.g. "Local Guide", "Verified Customer"
   likes?: number;
 }
+
+export interface SocialLinks {
+  facebook?: string;
+  instagram?: string;
+  tiktok?: string;
+}
