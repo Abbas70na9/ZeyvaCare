@@ -195,7 +195,7 @@ export default function App() {
       <FeatureIcons />
       <BenefitsSection />
       <HowItWorks />
-      <ReviewsSection reviews={reviews} limit={6} onViewMore={openAllReviews} />
+      <ReviewsSection reviews={reviews} limit={4} onViewMore={openAllReviews} />
       <FAQSection faqs={faqs} />
       <TrustBanner onOrderClick={openModal} product={activeProduct} />
       <Footer onAdminClick={openAdmin} />
