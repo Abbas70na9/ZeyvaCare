@@ -9,11 +9,12 @@ import {
   getStoredBundlesVisible,
   getStoredFaqs,
   getStoredReviews,
+  getStoredSocialLinks,
   toggleLikeReview,
   subscribeDataChanges,
   syncWithSupabase,
 } from "./data/storage";
-import type { Product, Bundle, FAQItem, ReviewItem, ReviewMedia } from "./types/store";
+import type { Product, Bundle, FAQItem, ReviewItem, ReviewMedia, SocialLinks } from "./types/store";
 
 export type { Bundle, Product, FAQItem, ReviewItem };
 
@@ -57,6 +58,7 @@ export default function App() {
   const [bundlesVisible, setBundlesVisible] = useState<boolean>(() => getStoredBundlesVisible());
   const [faqs, setFaqs] = useState<FAQItem[]>(() => getStoredFaqs());
   const [reviews, setReviews] = useState<ReviewItem[]>(() => getStoredReviews());
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>(() => getStoredSocialLinks());
 
   // Active product displayed on landing page
   const activeProduct = useMemo(() => {
@@ -89,6 +91,7 @@ export default function App() {
       setBundlesVisible(getStoredBundlesVisible());
       setFaqs(getStoredFaqs());
       setReviews(getStoredReviews());
+      setSocialLinks(getStoredSocialLinks());
     });
     return unsubscribe;
   }, []);
@@ -154,7 +157,7 @@ export default function App() {
         <AnnouncementBar />
         <Header onOrderClick={openModal} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
         <ReviewsSection reviews={reviews} onBack={closeAllReviews} />
-        <Footer onAdminClick={openAdmin} />
+        <Footer onAdminClick={openAdmin} socialLinks={socialLinks} />
         <OrderModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
@@ -198,7 +201,7 @@ export default function App() {
       <ReviewsSection reviews={reviews} limit={4} onViewMore={openAllReviews} />
       <FAQSection faqs={faqs} />
       <TrustBanner onOrderClick={openModal} product={activeProduct} />
-      <Footer onAdminClick={openAdmin} />
+      <Footer onAdminClick={openAdmin} socialLinks={socialLinks} />
 
       <SocialProofWidget />
       <StickyMobileBar
@@ -1300,7 +1303,46 @@ function TrustBanner({ onOrderClick, product }: { onOrderClick: () => void; prod
 
 /* ─────────────────  FOOTER (With Inconspicuous Hidden Dot)  ───────────────── */
 
-function Footer({ onAdminClick }: { onAdminClick: () => void }) {
+function Footer({
+  onAdminClick,
+  socialLinks,
+}: {
+  onAdminClick: () => void;
+  socialLinks: SocialLinks;
+}) {
+  const socials = [
+    {
+      key: "facebook",
+      label: "Facebook",
+      href: socialLinks.facebook,
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z" />
+        </svg>
+      ),
+    },
+    {
+      key: "instagram",
+      label: "Instagram",
+      href: socialLinks.instagram,
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2c2.717 0 3.056.01 4.122.06 1.065.05 1.79.217 2.428.465.66.256 1.216.6 1.772 1.153a4.908 4.908 0 011.153 1.772c.247.637.415 1.363.465 2.428.048 1.066.06 1.405.06 4.122 0 2.717-.01 3.056-.06 4.122-.05 1.065-.218 1.79-.465 2.428a4.883 4.883 0 01-1.153 1.772 4.915 4.915 0 01-1.772 1.153c-.637.247-1.363.415-2.428.465-1.066.048-1.405.06-4.122.06-2.717 0-3.056-.01-4.122-.06-1.065-.05-1.79-.218-2.428-.465a4.89 4.89 0 01-1.772-1.153 4.904 4.904 0 01-1.153-1.772c-.248-.637-.415-1.363-.465-2.428C2.013 15.056 2 14.717 2 12c0-2.717.01-3.056.06-4.122.05-1.066.217-1.79.465-2.428a4.898 4.898 0 011.153-1.772A4.89 4.89 0 015.45 2.525c.638-.248 1.362-.415 2.428-.465C8.944 2.013 9.283 2 12 2zm0 1.802c-2.67 0-2.987.01-4.04.059-.976.045-1.505.207-1.858.344-.466.181-.8.398-1.15.748-.35.35-.566.683-.747 1.15-.137.352-.3.881-.344 1.857-.05 1.053-.06 1.37-.06 4.04 0 2.67.01 2.987.06 4.04.045.976.207 1.505.344 1.858.181.466.398.8.748 1.15.35.35.683.566 1.15.747.352.137.881.3 1.857.344 1.052.05 1.37.06 4.04.06 2.67 0 2.987-.01 4.04-.06.976-.045 1.505-.207 1.858-.344a3.09 3.09 0 001.15-.748c.35-.35.566-.683.747-1.15.137-.352.3-.881.344-1.857.05-1.053.06-1.37.06-4.04 0-2.67-.01-2.987-.06-4.04-.045-.976-.207-1.505-.344-1.858a3.09 3.09 0 00-.748-1.15 3.09 3.09 0 00-1.15-.747c-.352-.137-.881-.3-1.857-.344-1.053-.05-1.37-.06-4.04-.06zm0 4.595a5.603 5.603 0 110 11.206 5.603 5.603 0 010-11.206zM12 16a4 4 0 100-8 4 4 0 000 8zm5.845-9.845a1.31 1.31 0 11-2.62 0 1.31 1.31 0 012.62 0z" />
+        </svg>
+      ),
+    },
+    {
+      key: "tiktok",
+      label: "TikTok",
+      href: socialLinks.tiktok,
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0115.54 3h-3.09v12.4a2.592 2.592 0 01-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 004.3 1.38V7.3s-1.88.09-3.24-1.48z" />
+        </svg>
+      ),
+    },
+  ];
+
   return (
     <footer className="bg-ink text-cream/80 pt-16 pb-24 lg:pb-16">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
@@ -1339,13 +1381,25 @@ function Footer({ onAdminClick }: { onAdminClick: () => void }) {
                   +92 349 8015702
                 </a>
               </li>
-              <li>hello@zeyvacare.com</li>
+              <li>
+                <a href="mailto:zeyvacare@gmail.com" className="hover:text-blush-200 transition">
+                  zeyvacare@gmail.com
+                </a>
+              </li>
               <li>Lahore, Pakistan</li>
             </ul>
             <div className="mt-4 flex gap-3">
-              {["📷", "📘", "🎵"].map((i, idx) => (
-                <a key={idx} href="#" className="w-8 h-8 rounded-full border border-cream/20 flex items-center justify-center text-xs hover:bg-cream/10 transition">
-                  {i}
+              {socials.map((s) => (
+                <a
+                  key={s.key}
+                  href={s.href && s.href.trim() ? s.href : "#"}
+                  target={s.href && s.href.trim() ? "_blank" : undefined}
+                  rel={s.href && s.href.trim() ? "noopener noreferrer" : undefined}
+                  aria-label={s.label}
+                  title={s.label}
+                  className="w-8 h-8 rounded-full border border-cream/20 flex items-center justify-center hover:bg-cream/10 hover:border-cream/40 transition"
+                >
+                  {s.icon}
                 </a>
               ))}
             </div>
