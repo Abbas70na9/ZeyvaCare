@@ -32,8 +32,21 @@ function checkIsAdminRoute(): boolean {
   );
 }
 
+function checkIsAllReviewsRoute(): boolean {
+  if (typeof window === "undefined") return false;
+  const hash = window.location.hash.toLowerCase();
+  const path = window.location.pathname.toLowerCase();
+  return (
+    hash === "#all-reviews" ||
+    hash.startsWith("#/reviews") ||
+    path === "/reviews" ||
+    path.startsWith("/reviews/")
+  );
+}
+
 export default function App() {
   const [isAdminView, setIsAdminView] = useState<boolean>(() => checkIsAdminRoute());
+  const [isAllReviewsView, setIsAllReviewsView] = useState<boolean>(() => checkIsAllReviewsRoute());
   const [modalOpen, setModalOpen] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [zoomOpen, setZoomOpen] = useState(false);
@@ -85,6 +98,7 @@ export default function App() {
   useEffect(() => {
     const onLocationChange = () => {
       setIsAdminView(checkIsAdminRoute());
+      setIsAllReviewsView(checkIsAllReviewsRoute());
     };
     window.addEventListener("hashchange", onLocationChange);
     window.addEventListener("popstate", onLocationChange);
@@ -110,11 +124,50 @@ export default function App() {
     setIsAdminView(false);
   }, []);
 
+  const openAllReviews = useCallback(() => {
+    window.location.hash = "all-reviews";
+    setIsAllReviewsView(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const closeAllReviews = useCallback(() => {
+    if (window.location.hash.includes("all-reviews") || window.location.hash.includes("reviews")) {
+      window.location.hash = "";
+      if (window.history.replaceState) {
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }
+    setIsAllReviewsView(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   const openModal = () => setModalOpen(true);
 
   // If in Admin view, render Admin portal
   if (isAdminView) {
     return <AdminPage onBackToStore={closeAdmin} />;
+  }
+
+  // If in the dedicated "All Reviews" view, render every review on its own page
+  if (isAllReviewsView) {
+    return (
+      <div className="min-h-screen bg-cream text-ink overflow-x-hidden">
+        <AnnouncementBar />
+        <Header onOrderClick={openModal} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+        <ReviewsSection reviews={reviews} onBack={closeAllReviews} />
+        <Footer onAdminClick={openAdmin} />
+        <OrderModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          unitPrice={activeProduct.price}
+          productName={activeProduct.name}
+          productImage={
+            (activeProduct.images && activeProduct.images[0]?.src) || "/images/product-1.jpg"
+          }
+          selectedBundle={bundlesVisible ? selectedBundle : undefined}
+        />
+      </div>
+    );
   }
 
   const images =
@@ -143,7 +196,7 @@ export default function App() {
       <FeatureIcons />
       <BenefitsSection />
       <HowItWorks />
-      <ReviewsSection reviews={reviews} />
+      <ReviewsSection reviews={reviews} limit={6} onViewMore={openAllReviews} />
       <FAQSection faqs={faqs} />
       <TrustBanner onOrderClick={openModal} product={activeProduct} />
       <Footer onAdminClick={openAdmin} />
@@ -786,7 +839,20 @@ function HowItWorks() {
 
 /* ─────────────────  REVIEWS (Google Reviews Style & Customer Submission)  ───────────────── */
 
-function ReviewsSection({ reviews }: { reviews: ReviewItem[] }) {
+function ReviewsSection({
+  reviews,
+  limit,
+  onViewMore,
+  onBack,
+}: {
+  reviews: ReviewItem[];
+  /** Max reviews to render (landing page teaser). Omit to show all (full reviews page). */
+  limit?: number;
+  /** Shown as a "View More Reviews" button when there are more reviews than `limit`. */
+  onViewMore?: () => void;
+  /** When provided, renders a "Back to Store" link at the top (full reviews page). */
+  onBack?: () => void;
+}) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<ReviewMedia | null>(null);
   const [filter, setFilter] = useState<"all" | "media" | "5star">("all");
@@ -797,7 +863,7 @@ function ReviewsSection({ reviews }: { reviews: ReviewItem[] }) {
   };
 
   // Filter reviews: show approved reviews to all, plus pending reviews ONLY if submitted by this user on this device
-  const visibleReviews = useMemo(() => {
+  const filteredReviews = useMemo(() => {
     return reviews.filter((r) => {
       const isApproved = (r.status || "approved") === "approved";
       const isMyPending = r.status === "pending" && mySubmittedIds.includes(r.id);
@@ -808,6 +874,13 @@ function ReviewsSection({ reviews }: { reviews: ReviewItem[] }) {
       return true;
     });
   }, [reviews, filter, mySubmittedIds]);
+
+  // Landing page only teases a handful of reviews; the full list lives on the "all reviews" page
+  const visibleReviews = useMemo(() => {
+    return typeof limit === "number" ? filteredReviews.slice(0, limit) : filteredReviews;
+  }, [filteredReviews, limit]);
+
+  const hasMoreReviews = typeof limit === "number" && filteredReviews.length > limit;
 
   const approvedReviews = useMemo(() => {
     return reviews.filter((r) => (r.status || "approved") === "approved");
@@ -842,6 +915,16 @@ function ReviewsSection({ reviews }: { reviews: ReviewItem[] }) {
       />
 
       <div className="max-w-6xl mx-auto px-5 sm:px-10">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="mb-6 inline-flex items-center gap-1.5 text-xs font-semibold text-muted hover:text-ink transition"
+          >
+            <span aria-hidden="true">←</span> Back to Store
+          </button>
+        )}
+
         {/* Google Reviews Official Style Header Card */}
         <div className="bg-white rounded-3xl border border-cream-dark p-6 sm:p-10 shadow-sm mb-12">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
@@ -1126,6 +1209,19 @@ function ReviewsSection({ reviews }: { reviews: ReviewItem[] }) {
             );
           })}
         </div>
+
+        {/* View More Reviews Button */}
+        {hasMoreReviews && onViewMore && (
+          <div className="mt-8 text-center">
+            <button
+              type="button"
+              onClick={onViewMore}
+              className="inline-flex items-center justify-center gap-2 bg-white border border-cream-dark hover:border-ink text-ink px-7 py-3 rounded-full text-xs font-semibold uppercase tracking-widest transition-all shadow-xs hover:shadow-md"
+            >
+              View More Reviews ({filteredReviews.length - visibleReviews.length} more)
+            </button>
+          </div>
+        )}
 
         {/* Bottom CTA Banner */}
         <div className="mt-14 text-center bg-blush-50 border border-blush-100 rounded-3xl p-8 sm:p-10 space-y-3">
