@@ -285,7 +285,7 @@ export default function OrderModal({
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="w-11 h-12 text-lg text-ink/70 hover:bg-cream-dark transition"
+                    className="w-11 h-12 shrink-0 text-lg text-ink/70 hover:bg-cream-dark transition"
                     aria-label="Decrease quantity"
                   >
                     −
@@ -297,12 +297,12 @@ export default function OrderModal({
                     onChange={(e) =>
                       setQuantity(Math.max(1, parseInt(e.target.value) || 1))
                     }
-                    className="flex-1 text-center bg-transparent focus:outline-none text-sm font-medium"
+                    className="w-0 flex-1 min-w-0 text-center bg-transparent focus:outline-none text-sm font-medium"
                   />
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => q + 1)}
-                    className="w-11 h-12 text-lg text-ink/70 hover:bg-cream-dark transition"
+                    className="w-11 h-12 shrink-0 text-lg text-ink/70 hover:bg-cream-dark transition"
                     aria-label="Increase quantity"
                   >
                     +
