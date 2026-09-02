@@ -1,5 +1,5 @@
 import { DEFAULT_PRODUCTS, DEFAULT_BUNDLES, DEFAULT_FAQS, DEFAULT_REVIEWS } from "./initialData";
-import type { Product, Bundle, FAQItem, ReviewItem } from "../types/store";
+import type { Product, Bundle, FAQItem, ReviewItem, SocialLinks } from "../types/store";
 import { getSupabase, isSupabaseConfigured } from "../lib/supabase";
 
 const KEYS = {
@@ -9,6 +9,7 @@ const KEYS = {
   FAQS: "zeyva_faqs",
   REVIEWS: "zeyva_reviews",
   MY_SUBMITTED_REVIEWS: "zeyva_my_submitted_reviews",
+  SOCIAL_LINKS: "zeyva_social_links",
   AUTH: "zeyva_admin_session",
 };
 
@@ -198,6 +199,38 @@ export function saveStoredFaqs(faqs: FAQItem[]): void {
         }
       } catch (e) {
         console.warn("Supabase faqs sync error:", e);
+      }
+    })();
+  }
+}
+
+/* =========================================================================
+   SOCIAL LINKS (Footer icons — editable from Admin Panel)
+========================================================================= */
+const DEFAULT_SOCIAL_LINKS: SocialLinks = {
+  facebook: "",
+  instagram: "",
+  tiktok: "",
+};
+
+export function getStoredSocialLinks(): SocialLinks {
+  return getJson<SocialLinks>(KEYS.SOCIAL_LINKS, DEFAULT_SOCIAL_LINKS);
+}
+
+export function saveStoredSocialLinks(links: SocialLinks): void {
+  setJson(KEYS.SOCIAL_LINKS, links);
+
+  const supabase = getSupabase();
+  if (supabase) {
+    (async () => {
+      try {
+        await supabase.from("store_settings").upsert({
+          key: "social_links",
+          value: links,
+          updated_at: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.warn("Supabase social links sync error:", err);
       }
     })();
   }
@@ -441,6 +474,17 @@ export async function syncWithSupabase(): Promise<{ success: boolean; message: s
       setJson(KEYS.BUNDLES_VISIBLE, setData.value.visible ? "true" : "false");
     }
 
+    // 2b. Sync settings (social links)
+    const { data: socialData } = await supabase
+      .from("store_settings")
+      .select("*")
+      .eq("key", "social_links")
+      .single();
+
+    if (socialData && socialData.value) {
+      setJson(KEYS.SOCIAL_LINKS, socialData.value as SocialLinks);
+    }
+
     // 3. Sync FAQs
     const { data: faqData } = await supabase
       .from("faqs")
@@ -473,6 +517,7 @@ export function resetAllToDefaults(): void {
   setJson(KEYS.FAQS, DEFAULT_FAQS);
   setJson(KEYS.REVIEWS, DEFAULT_REVIEWS);
   setJson(KEYS.MY_SUBMITTED_REVIEWS, []);
+  setJson(KEYS.SOCIAL_LINKS, DEFAULT_SOCIAL_LINKS);
   saveStoredBundlesVisible(false);
 }
 
