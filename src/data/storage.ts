@@ -234,7 +234,7 @@ export function submitUserReview(
     ...data,
     id: newId,
     date: "Just now",
-    status: "pending", // Requires admin approval
+    status: "approved", // Goes live immediately for all users; admin can still reject/delete later
     googleReview: true,
     userType: "Verified Customer",
     avatarColor: randomColor,
@@ -263,7 +263,7 @@ export function submitUserReview(
           body: newReview.body,
           verified: newReview.verified ?? true,
           date: "Just now",
-          status: "pending",
+          status: "approved",
           google_review: true,
           user_type: newReview.userType || "Verified Customer",
           avatar_color: newReview.avatarColor,
