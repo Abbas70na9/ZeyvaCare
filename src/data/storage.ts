@@ -6,12 +6,35 @@ const KEYS = {
   PRODUCTS: "zeyva_products",
   BUNDLES: "zeyva_bundles",
   BUNDLES_VISIBLE: "zeyva_bundles_visible",
+  BUNDLES_VISIBLE_TS: "zeyva_bundles_visible_ts",
   FAQS: "zeyva_faqs",
   REVIEWS: "zeyva_reviews",
   MY_SUBMITTED_REVIEWS: "zeyva_my_submitted_reviews",
   SOCIAL_LINKS: "zeyva_social_links",
+  SOCIAL_LINKS_TS: "zeyva_social_links_ts",
   AUTH: "zeyva_admin_session",
 };
+
+/** Read a locally-recorded "last changed" timestamp (ms) for a setting. */
+function getLocalTimestamp(key: string): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? parseInt(raw, 10) || 0 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Record "now" as the last time this setting was changed locally. */
+function setLocalTimestamp(key: string, ts: number): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(key, String(ts));
+  } catch {
+    // ignore
+  }
+}
 
 const DATA_CHANGED_EVENT = "zeyva_data_changed";
 
@@ -152,17 +175,22 @@ export function saveStoredBundlesVisible(visible: boolean): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(KEYS.BUNDLES_VISIBLE, visible ? "true" : "false");
+    const now = Date.now();
+    setLocalTimestamp(KEYS.BUNDLES_VISIBLE_TS, now);
     notifyDataChanged();
 
     const supabase = getSupabase();
     if (supabase) {
       (async () => {
         try {
-          await supabase.from("store_settings").upsert({
-            key: "bundles_visible",
-            value: { visible },
-            updated_at: new Date().toISOString(),
-          });
+          await supabase.from("store_settings").upsert(
+            {
+              key: "bundles_visible",
+              value: { visible },
+              updated_at: new Date(now).toISOString(),
+            },
+            { onConflict: "key" }
+          );
         } catch (err) {
           console.warn("Supabase settings sync error:", err);
         }
@@ -219,16 +247,21 @@ export function getStoredSocialLinks(): SocialLinks {
 
 export function saveStoredSocialLinks(links: SocialLinks): void {
   setJson(KEYS.SOCIAL_LINKS, links);
+  const now = Date.now();
+  setLocalTimestamp(KEYS.SOCIAL_LINKS_TS, now);
 
   const supabase = getSupabase();
   if (supabase) {
     (async () => {
       try {
-        await supabase.from("store_settings").upsert({
-          key: "social_links",
-          value: links,
-          updated_at: new Date().toISOString(),
-        });
+        await supabase.from("store_settings").upsert(
+          {
+            key: "social_links",
+            value: links,
+            updated_at: new Date(now).toISOString(),
+          },
+          { onConflict: "key" }
+        );
       } catch (err) {
         console.warn("Supabase social links sync error:", err);
       }
@@ -464,14 +497,29 @@ export async function syncWithSupabase(): Promise<{ success: boolean; message: s
     }
 
     // 2. Sync settings (bundles visibility)
+    // .maybeSingle() (not .single()) so this never throws if the row is
+    // missing or if duplicate rows exist from an older buggy upsert;
+    // ordering by updated_at picks the most recent value in that case.
     const { data: setData } = await supabase
       .from("store_settings")
       .select("*")
       .eq("key", "bundles_visible")
-      .single();
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (setData && setData.value && typeof setData.value.visible === "boolean") {
-      setJson(KEYS.BUNDLES_VISIBLE, setData.value.visible ? "true" : "false");
+      // Guard against a race where this fetch was kicked off before a more
+      // recent local toggle (e.g. admin just flipped the switch) — only
+      // apply the cloud value if it's actually newer than our local change,
+      // otherwise a slow initial sync could silently undo a fresh toggle
+      // a few seconds after the user made it.
+      const cloudTs = setData.updated_at ? new Date(setData.updated_at).getTime() : 0;
+      const localTs = getLocalTimestamp(KEYS.BUNDLES_VISIBLE_TS);
+      if (cloudTs >= localTs) {
+        setJson(KEYS.BUNDLES_VISIBLE, setData.value.visible ? "true" : "false");
+        setLocalTimestamp(KEYS.BUNDLES_VISIBLE_TS, cloudTs);
+      }
     }
 
     // 2b. Sync settings (social links)
@@ -479,10 +527,17 @@ export async function syncWithSupabase(): Promise<{ success: boolean; message: s
       .from("store_settings")
       .select("*")
       .eq("key", "social_links")
-      .single();
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (socialData && socialData.value) {
-      setJson(KEYS.SOCIAL_LINKS, socialData.value as SocialLinks);
+      const cloudTs = socialData.updated_at ? new Date(socialData.updated_at).getTime() : 0;
+      const localTs = getLocalTimestamp(KEYS.SOCIAL_LINKS_TS);
+      if (cloudTs >= localTs) {
+        setJson(KEYS.SOCIAL_LINKS, socialData.value as SocialLinks);
+        setLocalTimestamp(KEYS.SOCIAL_LINKS_TS, cloudTs);
+      }
     }
 
     // 3. Sync FAQs
