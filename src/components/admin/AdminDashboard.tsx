@@ -10,6 +10,8 @@ import {
   saveStoredFaqs,
   getStoredReviews,
   saveStoredReviews,
+  getStoredSocialLinks,
+  saveStoredSocialLinks,
   syncWithSupabase,
   resetAllToDefaults,
   setAdminAuthenticated,
@@ -19,7 +21,7 @@ import {
   saveSupabaseCredentials,
   isSupabaseConfigured,
 } from "../../lib/supabase";
-import type { Product, Bundle, FAQItem, ReviewItem, ReviewMedia } from "../../types/store";
+import type { Product, Bundle, FAQItem, ReviewItem, ReviewMedia, SocialLinks } from "../../types/store";
 import ReviewMediaLightbox from "../ReviewMediaLightbox";
 
 interface Props {
@@ -27,7 +29,7 @@ interface Props {
   onLogout: () => void;
 }
 
-type TabType = "products" | "bundles" | "faqs" | "reviews" | "database";
+type TabType = "products" | "bundles" | "faqs" | "reviews" | "settings" | "database";
 
 export default function AdminDashboard({ onBackToStore, onLogout }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>("products");
@@ -39,6 +41,7 @@ export default function AdminDashboard({ onBackToStore, onLogout }: Props) {
   const [bundlesVisible, setBundlesVisible] = useState<boolean>(() => getStoredBundlesVisible());
   const [faqs, setFaqs] = useState<FAQItem[]>(() => getStoredFaqs());
   const [reviews, setReviews] = useState<ReviewItem[]>(() => getStoredReviews());
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>(() => getStoredSocialLinks());
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -62,6 +65,7 @@ export default function AdminDashboard({ onBackToStore, onLogout }: Props) {
       setBundlesVisible(getStoredBundlesVisible());
       setFaqs(getStoredFaqs());
       setReviews(getStoredReviews());
+      setSocialLinks(getStoredSocialLinks());
       showToast("All store data reset to default successfully!");
     }
   };
@@ -137,6 +141,7 @@ export default function AdminDashboard({ onBackToStore, onLogout }: Props) {
                 count: reviews.length,
                 pendingCount: pendingReviewsCount,
               },
+              { id: "settings", label: "Settings", icon: "🔗", count: "Social" },
               {
                 id: "database",
                 label: "Cloud Database",
@@ -234,6 +239,17 @@ export default function AdminDashboard({ onBackToStore, onLogout }: Props) {
           />
         )}
 
+        {activeTab === "settings" && (
+          <SettingsManager
+            socialLinks={socialLinks}
+            setSocialLinks={(s) => {
+              setSocialLinks(s);
+              saveStoredSocialLinks(s);
+              showToast("Social links updated on store! ✨");
+            }}
+          />
+        )}
+
         {activeTab === "database" && (
           <DatabaseManager
             products={products}
@@ -246,6 +262,7 @@ export default function AdminDashboard({ onBackToStore, onLogout }: Props) {
               setBundlesVisible(getStoredBundlesVisible());
               setFaqs(getStoredFaqs());
               setReviews(getStoredReviews());
+              setSocialLinks(getStoredSocialLinks());
               showToast("Synced with Cloud Database! 🚀");
             }}
           />
@@ -1036,6 +1053,105 @@ function FaqsManager({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   4b. SETTINGS MANAGER (Footer Social Links)
+===================================================================== */
+function SettingsManager({
+  socialLinks,
+  setSocialLinks,
+}: {
+  socialLinks: SocialLinks;
+  setSocialLinks: (s: SocialLinks) => void;
+}) {
+  const [facebook, setFacebook] = useState(socialLinks.facebook || "");
+  const [instagram, setInstagram] = useState(socialLinks.instagram || "");
+  const [tiktok, setTiktok] = useState(socialLinks.tiktok || "");
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSocialLinks({
+      facebook: facebook.trim(),
+      instagram: instagram.trim(),
+      tiktok: tiktok.trim(),
+    });
+  };
+
+  const fields: Array<{
+    key: "facebook" | "instagram" | "tiktok";
+    label: string;
+    value: string;
+    setValue: (v: string) => void;
+    placeholder: string;
+  }> = [
+    {
+      key: "facebook",
+      label: "Facebook Page URL",
+      value: facebook,
+      setValue: setFacebook,
+      placeholder: "https://facebook.com/zeyvacare",
+    },
+    {
+      key: "instagram",
+      label: "Instagram Profile URL",
+      value: instagram,
+      setValue: setInstagram,
+      placeholder: "https://instagram.com/zeyvacare",
+    },
+    {
+      key: "tiktok",
+      label: "TikTok Profile URL",
+      value: tiktok,
+      setValue: setTiktok,
+      placeholder: "https://tiktok.com/@zeyvacare",
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-serif text-2xl sm:text-3xl text-ink">Store Settings</h2>
+        <p className="text-xs text-muted mt-1">
+          Manage the social media icons & links shown in the footer of your store.
+        </p>
+      </div>
+
+      <form
+        onSubmit={handleSave}
+        className="bg-white rounded-2xl border border-cream-dark p-6 shadow-sm space-y-5"
+      >
+        <h3 className="font-serif text-lg text-ink">🔗 Social Media Links</h3>
+        <p className="text-xs text-muted -mt-3">
+          Leave a field empty to keep that icon inactive in the footer.
+        </p>
+
+        <div className="space-y-4">
+          {fields.map((f) => (
+            <div key={f.key}>
+              <label className="block text-xs font-medium uppercase tracking-wider text-ink/70 mb-1.5">
+                {f.label}
+              </label>
+              <input
+                type="url"
+                value={f.value}
+                onChange={(e) => f.setValue(e.target.value)}
+                placeholder={f.placeholder}
+                className="w-full px-4 py-2.5 rounded-xl border border-cream-dark bg-cream/30 focus:bg-white text-xs text-ink"
+              />
+            </div>
+          ))}
+        </div>
+
+        <button
+          type="submit"
+          className="bg-ink text-cream hover:bg-blush-500 px-5 py-2 rounded-full text-xs font-medium uppercase tracking-wider transition"
+        >
+          Save Social Links
+        </button>
+      </form>
     </div>
   );
 }
