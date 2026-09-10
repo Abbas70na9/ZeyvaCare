@@ -340,6 +340,7 @@ export function submitUserReview(
     ...data,
     id: newId,
     date: "Just now",
+    createdAt: Date.now(),
     status: "approved", // Goes live immediately for all users; admin can still reject/delete later
     googleReview: true,
     userType: "Verified Customer",
@@ -486,6 +487,7 @@ export async function syncWithSupabase(): Promise<{ success: boolean; message: s
         body: r.body,
         verified: r.verified ?? true,
         date: r.date || "Recent",
+        createdAt: r.created_at ? new Date(r.created_at).getTime() : undefined,
         status: r.status || "approved",
         googleReview: r.google_review ?? true,
         userType: r.user_type || "Verified Customer",
