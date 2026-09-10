@@ -15,6 +15,8 @@ import {
   syncWithSupabase,
 } from "./data/storage";
 import type { Product, Bundle, FAQItem, ReviewItem, ReviewMedia, SocialLinks } from "./types/store";
+import { formatRelativeTime } from "./utils/relativeTime";
+import { useLiveClock } from "./utils/useLiveClock";
 
 export type { Bundle, Product, FAQItem, ReviewItem };
 
@@ -858,6 +860,9 @@ function ReviewsSection({
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<ReviewMedia | null>(null);
   const [filter, setFilter] = useState<"all" | "media" | "5star">("all");
+  // Re-render every minute so "Just now" naturally advances to "2 minutes
+  // ago", "1 hour ago", etc. instead of staying frozen forever.
+  useLiveClock();
 
   // New reviews go live immediately (see submitUserReview), so the public
   // list simply shows every approved review — no "pending, visible only to
@@ -1104,7 +1109,9 @@ function ReviewsSection({
                             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                           />
                         </svg>
-                        <span className="text-[10px] text-muted">{r.date}</span>
+                        <span className="text-[10px] text-muted">
+                          {formatRelativeTime(r.createdAt, r.date)}
+                        </span>
                       </div>
                     </div>
                   </div>
