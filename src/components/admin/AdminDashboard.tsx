@@ -23,6 +23,8 @@ import {
 } from "../../lib/supabase";
 import type { Product, Bundle, FAQItem, ReviewItem, ReviewMedia, SocialLinks } from "../../types/store";
 import ReviewMediaLightbox from "../ReviewMediaLightbox";
+import { formatRelativeTime } from "../../utils/relativeTime";
+import { useLiveClock } from "../../utils/useLiveClock";
 
 interface Props {
   onBackToStore: () => void;
@@ -1171,6 +1173,8 @@ function ReviewsManager({
 }) {
   const [filterTab, setFilterTab] = useState<ReviewTab>("pending");
   const [selectedLightboxMedia, setSelectedLightboxMedia] = useState<ReviewMedia | null>(null);
+  // Keeps relative "X minutes ago" labels on live (createdAt-based) reviews ticking.
+  useLiveClock();
 
   // Manual Add Form State
   const [name, setName] = useState("");
@@ -1588,7 +1592,7 @@ function ReviewsManager({
                           )}
                         </div>
                         <p className="text-xs text-muted">
-                          {r.location} · {r.date}
+                          {r.location} · {formatRelativeTime(r.createdAt, r.date)}
                         </p>
                       </div>
                     </div>
