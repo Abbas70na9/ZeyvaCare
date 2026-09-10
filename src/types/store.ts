@@ -50,6 +50,10 @@ export interface ReviewItem {
   body: string;
   verified: boolean;
   date: string;
+  /** Real creation timestamp (ms since epoch) used to compute a LIVE relative
+   *  label ("2 minutes ago" etc). Optional — legacy/seed reviews without it
+   *  just keep showing their fixed `date` string. */
+  createdAt?: number;
   avatarColor?: string;
   media?: ReviewMedia[];
   status?: "approved" | "pending" | "rejected";
